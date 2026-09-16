@@ -130,7 +130,7 @@ do_install_kejilion() {
 while true; do
     echo ""
     printf "${SKYBLUE}=========================================\n${NC}"
-    printf "${SKYBLUE}      ⚡ 【夜未央】 终极工具箱 ⚡        \n${NC}"
+    printf "${SKYBLUE}      ⚡ 【夜未央】 脚本工具箱 ⚡        \n${NC}"
     printf "${SKYBLUE}=========================================\n${NC}"
     echo " 1. 安装OpenVPN 服务端与客户端管理 "
     echo " 2. 安装 Hysteria 2"
