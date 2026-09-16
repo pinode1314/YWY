@@ -2,11 +2,11 @@
 
 export LANG=en_US.UTF-8
 
-# 定义颜色变量（ANSI 256 色精准匹配紫色）
-PURPLE='\033[38;5;134m'
+# 定义颜色变量
 RED='\033[1;31m'
 GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
+SKYBLUE='\033[1;36m'
 NC='\033[0m' # 恢复默认颜色
 
 # 检查是否为 root 用户
@@ -102,20 +102,46 @@ do_install_softether() {
     bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/SoftEther/main/SoftEther.sh)
 }
 
+do_install_singbox() {
+    # 更加严谨的判断：必须同时存在快捷命令 sb 且核心二进制文件 /etc/s-box/sing-box 真实存在，才认为是已安装
+    if [ -f /etc/s-box/sing-box ] && command -v sb >/dev/null 2>&1; then
+        echo "=== 检测到 sing-box 已安装，正在打开管理菜单（可查看配置、卸载等） ==="
+        sb
+        return
+    fi
+
+    # 否则（说明刚卸载过或是初次安装），走完整安装和自动生成订阅流程
+    echo "=== 正在启动 sing-box 五合一脚本安装 ==="
+    bash <(wget -qO- https://raw.githubusercontent.com/yonggekkk/sing-box-yg/main/sb.sh)
+    echo "=== 正在自动配置并生成本地IP订阅链接 ==="
+    printf '3\n8\n1\n888988' | sb
+}
+
+do_install_kejilion() {
+    echo "=== 正在启动 科技lion Linux服务器运维工具箱 ==="
+    if command -v kejilion >/dev/null 2>&1; then
+        kejilion
+    else
+        bash <(curl -sL kejilion.sh)
+    fi
+}
+
 # ----------------- 主菜单循环 -----------------
 while true; do
     echo ""
-    printf "${PURPLE}=========================================\n${NC}"
-    printf "${PURPLE}        ℼ 【夜未央】脚本工具箱          \n${NC}"
-    printf "${PURPLE}=========================================\n${NC}"
-    echo " 1. OpenVPN 服务端与客户端管理 (安装/新增/删除)"
+    printf "${SKYBLUE}=========================================\n${NC}"
+    printf "${SKYBLUE}      ⚡ 【夜未央】 终极工具箱 ⚡        \n${NC}"
+    printf "${SKYBLUE}=========================================\n${NC}"
+    echo " 1. 安装OpenVPN 服务端与客户端管理 "
     echo " 2. 安装 Hysteria 2"
     echo " 3. 安装 FRP 端口映射"
-    echo " 4. 安装 Rinetd 端口转发"
+    echo " 4. 安装 Rinetd TCP端口映射"
     echo " 5. 安装 SoftEther VPN"
+    echo " 6. sing-box 五合一脚本"
+    echo " 7. 科技lion Linux服务器运维工具箱"
     echo " 0. 退出脚本"
-    printf "${PURPLE}=========================================\n${NC}"
-    read -p "请选择操作 [0-5]: " CHOICE
+    printf "${SKYBLUE}=========================================\n${NC}"
+    read -p "请选择操作 [0-7]: " CHOICE
 
     case "$CHOICE" in
         1)
@@ -133,12 +159,18 @@ while true; do
         5)
             do_install_softether
             ;;
+        6)
+            do_install_singbox
+            ;;
+        7)
+            do_install_kejilion
+            ;;
         0)
             echo "已安全退出脚本。"
             break
             ;;
         *)
-            printf "${RED}❌ 无效的选项，请输入 0 到 5 之间的数字。\n${NC}"
+            printf "${RED}❌ 无效的选项，请输入 0 到 7 之间的数字。\n${NC}"
             ;;
     esac
 done
