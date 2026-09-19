@@ -15,9 +15,9 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# ----------------- 升级系统库并自动安装前置依赖函数 -----------------
-system_upgrade_and_install_deps() {
-    echo "=== 正在识别系统并发起全局依赖与系统库升级 ==="
+# ----------------- 自动安装前置依赖函数（已去除耗时升级） -----------------
+install_deps_fast() {
+    echo "=== 正在识别系统并发起前置依赖检查与安装 ==="
 
     if [ -f /etc/os-release ]; then
         . /etc/os-release
@@ -36,48 +36,37 @@ system_upgrade_and_install_deps() {
     case "$OS" in
         ubuntu|debian|raspbian)
             export DEBIAN_FRONTEND=noninteractive
-            echo "=== 正在更新 apt 软件源并升级系统库与基础依赖 ==="
             apt-get update -y
-            apt-get upgrade -y
             apt-get install -y "${common_deps[@]}"
             ;;
         centos|rhel|fedora|rocky|almalinux)
-            echo "=== 正在更新 yum/dnf 软件源并升级系统库与基础依赖 ==="
             if command -v dnf >/dev/null 2>&1; then
-                dnf upgrade -y
                 dnf install -y "${common_deps[@]}"
             else
-                yum upgrade -y
                 yum install -y "${common_deps[@]}"
             fi
             ;;
         alpine)
-            echo "=== 正在更新 apk 软件源并升级系统库与基础依赖 ==="
             apk update
-            apk upgrade
             apk add --no-cache "${common_deps[@]}"
             ;;
         arch|manjaro)
-            echo "=== 正在同步 pacman 软件源并升级系统库与基础依赖 ==="
-            pacman -Syu --noconfirm
-            pacman -S --needed --noconfirm "${common_deps[@]}"
+            pacman -Sy --noconfirm --needed "${common_deps[@]}"
             ;;
         opensuse*|sles)
-            echo "=== 正在刷新 zypper 软件源并升级系统库与基础依赖 ==="
             zypper refresh
-            zypper update -y
             zypper install -y "${common_deps[@]}"
             ;;
         *)
-            printf "${YELLOW}⚠️ 未能完全自动识别当前系统类型，将尝试跳过全局自动升级，直接执行后续操作。\n${NC}"
+            printf "${YELLOW}⚠️ 未能完全自动识别当前系统类型，将跳过自动依赖安装。\n${NC}"
             ;;
     esac
 
-    echo "=== 系统库与所有前置依赖检查升级完成 ==="
+    echo "=== 前置依赖检查与安装完成 ==="
 }
 
-# 运行全局升级与依赖安装
-system_upgrade_and_install_deps
+# 运行快速依赖安装
+install_deps_fast
 
 # 检查 OpenVPN 是否已安装
 check_openvpn_installed() {
@@ -88,7 +77,7 @@ check_openvpn_installed() {
     fi
 }
 
-# ----------------- OpenVPN 管理函数（安装、新增、卸载一体化） -----------------
+# ----------------- OpenVPN 管理函数（安装, 新增, 卸载一体化） -----------------
 do_openvpn_manager() {
     if ! check_openvpn_installed; then
         echo "=== 检测到未安装 OpenVPN，正在引导首次安装 ==="
