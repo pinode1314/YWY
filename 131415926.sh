@@ -15,8 +15,17 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# ----------------- 自动安装前置依赖函数（已去除耗时升级） -----------------
-install_deps_fast() {
+# ----------------- 优化 2：系统架构（CPU Architecture）校验 -----------------
+check_architecture() {
+    local ARCH=$(uname -m)
+    echo "=== 当前系统架构: ${ARCH} ==="
+    if [ "$ARCH" != "x86_64" ] && [ "$ARCH" != "aarch64" ] && [ "$ARCH" != "arm64" ]; then
+        printf "${YELLOW}⚠️ 检测到您处于非主流架构 (${ARCH})，部分一键脚本可能无法正常运行二进制文件，请知悉。\n${NC}"
+    fi
+}
+
+# ----------------- 优化 1 & 5：前置依赖安装、锁清理与返回值强校验 -----------------
+install_deps_with_robustness() {
     echo "=== 正在识别系统并发起前置依赖检查与安装 ==="
 
     if [ -f /etc/os-release ]; then
@@ -30,12 +39,15 @@ install_deps_fast() {
         OS="unknown"
     fi
 
-    # 汇总菜单中各个脚本运行所需的通用依赖
     local common_deps=("wget" "curl" "tar" "ca-certificates" "iptables" "socat" "cron" "unzip" "git")
 
     case "$OS" in
         ubuntu|debian|raspbian)
             export DEBIAN_FRONTEND=noninteractive
+            # 清理可能存在的 dpkg 锁，防止由于后台更新导致卡死
+            echo "=== 正在检查并清理可能存在的 apt 锁文件 ==="
+            rm -f /var/lib/dpkg/lock-frontend /var/cache/apt/archives/lock /var/lib/dpkg/lock >/dev/null 2>&1
+            
             apt-get update -y
             apt-get install -y "${common_deps[@]}"
             ;;
@@ -59,14 +71,51 @@ install_deps_fast() {
             ;;
         *)
             printf "${YELLOW}⚠️ 未能完全自动识别当前系统类型，将跳过自动依赖安装。\n${NC}"
+            return 1
             ;;
     esac
 
-    echo "=== 前置依赖检查与安装完成 ==="
+    # 优化 5：返回值状态码校验
+    if [ $? -eq 0 ]; then
+        echo "=== 前置依赖检查与安装成功完成 ==="
+        return 0
+    else
+        printf "${YELLOW}⚠️ 部分依赖安装可能未完全成功，建议检查上方报错日志。\n${NC}"
+        return 1
+    fi
 }
 
-# 运行快速依赖安装
-install_deps_fast
+# ----------------- 优化 4：防火墙端口放行辅助函数 -----------------
+auto_open_firewall_port() {
+    local port=$1
+    if [ -z "$port" ]; then
+        return
+    fi
+    
+    echo "=== 正在尝试自动放行防火墙端口: ${port} ==="
+    # 检测并放行 UFW (Ubuntu/Debian 常用)
+    if command -v ufw >/dev/null 2>&1; then
+        if ufw status | grep -q "Status: active"; then
+            ufw allow ${port}/tcp >/dev/null 2>&1
+            ufw allow ${port}/udp >/dev/null 2>&1
+            echo "=== 已通过 UFW 放行端口 ${port} ==="
+        fi
+    fi
+
+    # 检测并放行 Firewalld (CentOS/RHEL 常用)
+    if command -v firewall-cmd >/dev/null 2>&1; then
+        if systemctl is-active --quiet firewalld; then
+            firewall-cmd --zone=public --add-port=${port}/tcp --permanent >/dev/null 2>&1
+            firewall-cmd --zone=public --add-port=${port}/udp --permanent >/dev/null 2>&1
+            firewall-cmd --reload >/dev/null 2>&1
+            echo "=== 已通过 Firewalld 放行端口 ${port} ==="
+        fi
+    fi
+}
+
+# 执行架构检查与健壮的依赖安装
+check_architecture
+install_deps_with_robustness
 
 # 检查 OpenVPN 是否已安装
 check_openvpn_installed() {
@@ -86,6 +135,9 @@ do_openvpn_manager() {
 
         # 调用原版交互安装
         bash openvpn-install.sh
+
+        # 默认 OpenVPN 常用端口一般为 1194，尝试自动放行防火墙
+        auto_open_firewall_port 1194
 
         # 安装完成后，自动补全多设备同证书在线(duplicate-cn)以及默认客户端固定IP
         echo "=== 正在为默认客户端配置固定 IP 及多设备共存策略 ==="
@@ -138,11 +190,13 @@ CCD
 do_install_hy2() {
     echo "=== 正在启动 Hysteria 2 一键脚本 ==="
     bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/hysteria2/main/hysteria2.sh)
+    echo -e "${YELLOW}💡 提示：如果安装成功后无法连接，请注意检查云服务商后台的“安全组”及本地防火墙是否放行了对应端口。${NC}"
 }
 
 do_install_frp() {
     echo "=== 正在启动 FRP 一键安装脚本 ==="
     bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/frp-script/main/frp.sh)
+    echo -e "${YELLOW}💡 提示：请确保云服务器安全组已放行 FRP 客户端与服务端的通信端口。${NC}"
 }
 
 do_install_rinetd() {
@@ -153,6 +207,7 @@ do_install_rinetd() {
 do_install_softether() {
     echo "=== 正在启动 SoftEther 一键脚本 ==="
     bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/SoftEther/main/SoftEther.sh)
+    auto_open_firewall_port 443
 }
 
 do_install_singbox() {
