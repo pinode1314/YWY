@@ -15,78 +15,6 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# ----------------- 系统架构（CPU Architecture）校验 -----------------
-check_architecture() {
-    local ARCH=$(uname -m)
-    echo "=== 当前系统架构: ${ARCH} ==="
-    if [ "$ARCH" != "x86_64" ] && [ "$ARCH" != "aarch64" ] && [ "$ARCH" != "arm64" ]; then
-        printf "${YELLOW}⚠️ 检测到您处于非主流架构 (${ARCH})，部分一键脚本可能无法正常运行二进制文件，请知悉。\n${NC}"
-    fi
-}
-
-# ----------------- 前置依赖安装、锁清理与返回值强校验 -----------------
-install_deps_with_robustness() {
-    echo "=== 正在识别系统并发起前置依赖检查与安装 ==="
-
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        OS=$ID
-    elif [ -f /etc/debian_version ]; then
-        OS="debian"
-    elif [ -f /etc/redhat-release ]; then
-        OS="rhel"
-    else
-        OS="unknown"
-    fi
-
-    local common_deps=("wget" "curl" "tar" "ca-certificates" "iptables" "socat" "cron" "unzip" "git")
-
-    case "$OS" in
-        ubuntu|debian|raspbian)
-            export DEBIAN_FRONTEND=noninteractive
-            echo "=== 正在检查并清理可能存在的 apt 锁文件 ==="
-            rm -f /var/lib/dpkg/lock-frontend /var/cache/apt/archives/lock /var/lib/dpkg/lock >/dev/null 2>&1
-            
-            apt-get update -y
-            apt-get install -y "${common_deps[@]}"
-            ;;
-        centos|rhel|fedora|rocky|almalinux)
-            if command -v dnf >/dev/null 2>&1; then
-                dnf install -y "${common_deps[@]}"
-            else
-                yum install -y "${common_deps[@]}"
-            fi
-            ;;
-        alpine)
-            apk update
-            apk add --no-cache "${common_deps[@]}"
-            ;;
-        arch|manjaro)
-            pacman -Sy --noconfirm --needed "${common_deps[@]}"
-            ;;
-        opensuse*|sles)
-            zypper refresh
-            zypper install -y "${common_deps[@]}"
-            ;;
-        *)
-            printf "${YELLOW}⚠️ 未能完全自动识别当前系统类型，将跳过自动依赖安装。\n${NC}"
-            return 1
-            ;;
-    esac
-
-    if [ $? -eq 0 ]; then
-        echo "=== 前置依赖检查与安装成功完成 ==="
-        return 0
-    else
-        printf "${YELLOW}⚠️ 部分依赖安装可能未完全成功，建议检查上方报错日志。\n${NC}"
-        return 1
-    fi
-}
-
-# 执行架构检查与健壮的依赖安装
-check_architecture
-install_deps_with_robustness
-
 # 检查 OpenVPN 是否已安装
 check_openvpn_installed() {
     if [ -d "/etc/openvpn/server" ] || [ -f "/etc/systemd/system/openvpn-server@server.service" ]; then
@@ -96,57 +24,27 @@ check_openvpn_installed() {
     fi
 }
 
-# ----------------- OpenVPN 管理函数（安装, 新增, 卸载一体化） -----------------
+# ----------------- OpenVPN 管理函数（安装与客户端管理一体化） -----------------
 do_openvpn_manager() {
-    if ! check_openvpn_installed; then
-        echo "=== 检测到未安装 OpenVPN，正在引导首次安装 ==="
-        wget -O openvpn-install.sh https://git.io/vpn
+    if [ ! -f "openvpn-install.sh" ]; then
+        wget -O openvpn-install.sh https://git.io/vpn >/dev/null 2>&1
         chmod +x openvpn-install.sh
+    fi
 
-        bash openvpn-install.sh
-
-        echo "=== 正在为默认客户端配置固定 IP 及多设备共存策略 ==="
-        FIRST_OVPN=$(ls ~/*.ovpn 2>/dev/null | head -n 1)
-        if [ -n "$FIRST_OVPN" ]; then
-            CLIENT_NAME=$(basename "$FIRST_OVPN" .ovpn)
-        else
-            CLIENT_NAME="client"
-        fi
-
-        mkdir -p /etc/openvpn/ccd
-        cat << CCD > /etc/openvpn/ccd/${CLIENT_NAME}
-ifconfig-push 10.8.0.2 255.255.255.0
-CCD
-
-        if ! grep -q "client-config-dir" /etc/openvpn/server/server.conf; then
-            echo 'client-config-dir /etc/openvpn/ccd' >> /etc/openvpn/server/server.conf
-        fi
-        if ! grep -q "duplicate-cn" /etc/openvpn/server/server.conf; then
-            echo 'duplicate-cn' >> /etc/openvpn/server/server.conf
-        fi
-
-        systemctl restart openvpn-server@server
+    if check_openvpn_installed; then
         echo ""
         echo "=================================================="
-        printf "${GREEN}OpenVPN 安装完毕，多设备同时在线功能已激活！\n${NC}"
+        printf "${GREEN}✅ 检测到 OpenVPN 服务端已安装！${NC}\n"
+        printf "${GREEN}即将为您打开原版客户端与服务端管理菜单...${NC}\n"
         echo "=================================================="
+        echo ""
+        read -p "请按回车键继续进入管理菜单..."
     else
-        echo "=== OpenVPN 已安装，正在打开原版管理菜单（可新增/删除用户/卸载） ==="
-        if [ ! -f "openvpn-install.sh" ]; then
-            wget -O openvpn-install.sh https://git.io/vpn
-            chmod +x openvpn-install.sh
-        fi
-
-        bash openvpn-install.sh
-
-        if ! grep -q "client-config-dir" /etc/openvpn/server/server.conf; then
-            echo 'client-config-dir /etc/openvpn/ccd' >> /etc/openvpn/server/server.conf
-        fi
-        if ! grep -q "duplicate-cn" /etc/openvpn/server/server.conf; then
-            echo 'duplicate-cn' >> /etc/openvpn/server/server.conf
-        fi
-        systemctl restart openvpn-server@server >/dev/null 2>&1
+        echo "=== 正在下载并运行原版 OpenVPN 安装程序 ==="
     fi
+
+    # 直接调用原版管理/安装脚本（保留原生交互，去掉多设备修改）
+    bash openvpn-install.sh
 }
 
 # ----------------- 其他工具安装函数 -----------------
@@ -171,12 +69,14 @@ do_install_softether() {
 }
 
 do_install_singbox() {
+    # 更加严谨的判断：必须同时存在快捷命令 sb 且核心二进制文件 /etc/s-box/sing-box 真实存在，才认为是已安装
     if [ -f /etc/s-box/sing-box ] && command -v sb >/dev/null 2>&1; then
         echo "=== 检测到 sing-box 已安装，正在打开管理菜单（可查看配置、卸载等） ==="
         sb
         return
     fi
 
+    # 否则（说明刚卸载过或是初次安装），走完整安装和自动生成订阅流程
     echo "=== 正在启动 sing-box 五合一脚本安装 ==="
     bash <(wget -qO- https://raw.githubusercontent.com/yonggekkk/sing-box-yg/main/sb.sh)
     echo "=== 正在自动配置并生成本地IP订阅链接 ==="
@@ -184,7 +84,7 @@ do_install_singbox() {
 }
 
 do_install_kejilion() {
-    echo "=== 正在启动 科技lion Linux服务器运维工具箱 ==="
+    echo "=== 科技lion Linux服务器运维工具箱 ==="
     if command -v kejilion >/dev/null 2>&1; then
         kejilion
     else
@@ -192,10 +92,9 @@ do_install_kejilion() {
     fi
 }
 
-# ==============================================================================
-# ----------------- 🛡️ 多系统防火墙管理子模块（集成开始） -----------------
-# ==============================================================================
-
+# ------------------------------------------------------------------
+# ----------------- 第 8 项：系统防火墙管理子系统 -------------------
+# ------------------------------------------------------------------
 get_distro_and_fw() {
     hash -r 2>/dev/null
 
@@ -420,7 +319,6 @@ allow_port() {
         return
     fi
 
-    # 校验端口是否在 1-65535 范围内
     if [[ "$PORT" =~ ^[0-9]+-[0-9]+$ ]]; then
         P_START=$(echo "$PORT" | cut -d'-' -f1)
         P_END=$(echo "$PORT" | cut -d'-' -f2)
@@ -590,12 +488,11 @@ uninstall_firewall() {
     echo "当前最新状态已重置为: $FW_TYPE"
 }
 
-# 防火墙子菜单入口函数
-firewall_menu() {
+do_firewall_manager() {
     while true; do
         echo ""
         printf "${SKYBLUE}=========================================\n${NC}"
-        printf "${SKYBLUE}       🛡️ 多系统防火墙管理子脚本 🛡️        \n${NC}"
+        printf "${SKYBLUE}       🛡️ 多系统防火墙管理子菜单 🛡️        \n${NC}"
         printf "${SKYBLUE}=========================================\n${NC}"
         echo " 1. 检测系统防火墙安装、状态与端口规则"
         echo " 2. 安装指定防火墙 (带冲突检测)"
@@ -603,25 +500,22 @@ firewall_menu() {
         echo " 4. 放行指定端口或范围 (支持 TCP/UDP 选择)"
         echo " 5. 删除指定端口或范围规则 (支持 TCP/UDP 选择)"
         echo " 6. 完全卸载当前防火墙服务"
-        echo " 0. 返回综合工具箱主菜单"
+        echo " 0. 返回大脚本主菜单"
         printf "${SKYBLUE}=========================================\n${NC}"
-        read -p "请选择操作 [0-6]: " FW_CHOICE
+        read -p "请选择操作 [0-6]: " fw_choice
 
-        case "$FW_CHOICE" in
+        case "$fw_choice" in
             1) check_firewall_status ;;
             2) install_firewall ;;
             3) control_firewall ;;
             4) allow_port ;;
             5) delete_port ;;
             6) uninstall_firewall ;;
-            0) echo "已退出防火墙子菜单，返回主菜单。"; break ;;
+            0) echo "已退出防火墙管理子菜单，返回主菜单。"; break ;;
             *) printf "${RED}❌ 无效选项，请输入 0 到 6 之间的数字。\n${NC}" ;;
         esac
     done
 }
-# ==============================================================================
-# ----------------- 🛡️ 多系统防火墙管理子模块（集成结束） -----------------
-# ==============================================================================
 
 # ----------------- 主菜单循环 -----------------
 while true; do
@@ -629,14 +523,14 @@ while true; do
     printf "${SKYBLUE}=========================================\n${NC}"
     printf "${SKYBLUE}      ⚡ 【夜未央】 脚本工具箱 ⚡        \n${NC}"
     printf "${SKYBLUE}=========================================\n${NC}"
-    echo " 1. 安装OpenVPN 服务端与客户端管理 "
+    echo " 1. 安装 OpenVPN 服务端与客户端管理"
     echo " 2. 安装 Hysteria 2"
     echo " 3. 安装 FRP 端口映射"
     echo " 4. 安装 Rinetd TCP端口映射"
     echo " 5. 安装 SoftEther VPN"
     echo " 6. sing-box 五合一脚本"
     echo " 7. 科技lion Linux服务器运维工具箱"
-    echo " 8. 系统防火墙管理 (UFW / Firewalld / Iptables)"
+    echo " 8. 系统防火墙管理"
     echo " 0. 退出脚本"
     printf "${SKYBLUE}=========================================\n${NC}"
     read -p "请选择操作 [0-8]: " CHOICE
@@ -664,7 +558,7 @@ while true; do
             do_install_kejilion
             ;;
         8)
-            firewall_menu
+            do_firewall_manager
             ;;
         0)
             echo "已安全退出脚本。"
