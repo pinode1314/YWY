@@ -15,6 +15,72 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# ----------------- 多系统依赖自动检测与安装函数 -----------------
+check_and_install_dependencies() {
+    echo "=== 正在检查系统基础依赖环境 ==="
+    
+    # 需要检查的基础命令列表
+    local deps=("wget" "curl" "tar" "ca-certificates")
+    local missing_deps=()
+
+    for dep in "${deps[@]}"; do
+        if ! command -v "$dep" >/dev/null 2>&1; then
+            missing_deps+=("$dep")
+        fi
+    done
+
+    if [ ${#missing_deps[@]} -eq 0 ]; then
+        echo "=== 所有基础依赖已就绪 ==="
+        return 0
+    fi
+
+    echo "=== 检测到缺失依赖: ${missing_deps[*]}，正在自动适配系统并安装 ==="
+
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        OS=$ID
+    elif [ -f /etc/debian_version ]; then
+        OS="debian"
+    elif [ -f /etc/redhat-release ]; then
+        OS="rhel"
+    else
+        OS="unknown"
+    fi
+
+    case "$OS" in
+        ubuntu|debian|raspbian)
+            apt-get update -y
+            apt-get install -y "${missing_deps[@]}"
+            ;;
+        centos|rhel|fedora|rocky|almalinux)
+            if command -v dnf >/dev/null 2>&1; then
+                dnf install -y "${missing_deps[@]}"
+            else
+                yum install -y "${missing_deps[@]}"
+            fi
+            ;;
+        alpine)
+            apk update
+            apk add --no-cache "${missing_deps[@]}"
+            ;;
+        arch|manjaro)
+            pacman -Sy --noconfirm "${missing_deps[@]}"
+            ;;
+        opensuse*|sles)
+            zypper refresh
+            zypper install -y "${missing_deps[@]}"
+            ;;
+        *)
+            printf "${YELLOW}⚠️ 未能自动识别当前 Linux 发行版，请手动安装以下依赖: ${missing_deps[*]}\n${NC}"
+            ;;
+    esac
+
+    echo "=== 依赖检查与安装流程完成 ==="
+}
+
+# 运行依赖自动安装检查
+check_and_install_dependencies
+
 # 检查 OpenVPN 是否已安装
 check_openvpn_installed() {
     if [ -d "/etc/openvpn/server" ] || [ -f "/etc/systemd/system/openvpn-server@server.service" ]; then
