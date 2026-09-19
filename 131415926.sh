@@ -15,26 +15,9 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# ----------------- 多系统依赖自动检测与安装函数 -----------------
-check_and_install_dependencies() {
-    echo "=== 正在检查系统基础依赖环境 ==="
-    
-    # 需要检查的基础命令列表
-    local deps=("wget" "curl" "tar" "ca-certificates")
-    local missing_deps=()
-
-    for dep in "${deps[@]}"; do
-        if ! command -v "$dep" >/dev/null 2>&1; then
-            missing_deps+=("$dep")
-        fi
-    done
-
-    if [ ${#missing_deps[@]} -eq 0 ]; then
-        echo "=== 所有基础依赖已就绪 ==="
-        return 0
-    fi
-
-    echo "=== 检测到缺失依赖: ${missing_deps[*]}，正在自动适配系统并安装 ==="
+# ----------------- 升级系统库并自动安装前置依赖函数 -----------------
+system_upgrade_and_install_deps() {
+    echo "=== 正在识别系统并发起全局依赖与系统库升级 ==="
 
     if [ -f /etc/os-release ]; then
         . /etc/os-release
@@ -47,39 +30,54 @@ check_and_install_dependencies() {
         OS="unknown"
     fi
 
+    # 汇总菜单中各个脚本运行所需的通用依赖
+    local common_deps=("wget" "curl" "tar" "ca-certificates" "iptables" "socat" "cron" "unzip" "git")
+
     case "$OS" in
         ubuntu|debian|raspbian)
+            export DEBIAN_FRONTEND=noninteractive
+            echo "=== 正在更新 apt 软件源并升级系统库与基础依赖 ==="
             apt-get update -y
-            apt-get install -y "${missing_deps[@]}"
+            apt-get upgrade -y
+            apt-get install -y "${common_deps[@]}"
             ;;
         centos|rhel|fedora|rocky|almalinux)
+            echo "=== 正在更新 yum/dnf 软件源并升级系统库与基础依赖 ==="
             if command -v dnf >/dev/null 2>&1; then
-                dnf install -y "${missing_deps[@]}"
+                dnf upgrade -y
+                dnf install -y "${common_deps[@]}"
             else
-                yum install -y "${missing_deps[@]}"
+                yum upgrade -y
+                yum install -y "${common_deps[@]}"
             fi
             ;;
         alpine)
+            echo "=== 正在更新 apk 软件源并升级系统库与基础依赖 ==="
             apk update
-            apk add --no-cache "${missing_deps[@]}"
+            apk upgrade
+            apk add --no-cache "${common_deps[@]}"
             ;;
         arch|manjaro)
-            pacman -Sy --noconfirm "${missing_deps[@]}"
+            echo "=== 正在同步 pacman 软件源并升级系统库与基础依赖 ==="
+            pacman -Syu --noconfirm
+            pacman -S --needed --noconfirm "${common_deps[@]}"
             ;;
         opensuse*|sles)
+            echo "=== 正在刷新 zypper 软件源并升级系统库与基础依赖 ==="
             zypper refresh
-            zypper install -y "${missing_deps[@]}"
+            zypper update -y
+            zypper install -y "${common_deps[@]}"
             ;;
         *)
-            printf "${YELLOW}⚠️ 未能自动识别当前 Linux 发行版，请手动安装以下依赖: ${missing_deps[*]}\n${NC}"
+            printf "${YELLOW}⚠️ 未能完全自动识别当前系统类型，将尝试跳过全局自动升级，直接执行后续操作。\n${NC}"
             ;;
     esac
 
-    echo "=== 依赖检查与安装流程完成 ==="
+    echo "=== 系统库与所有前置依赖检查升级完成 ==="
 }
 
-# 运行依赖自动安装检查
-check_and_install_dependencies
+# 运行全局升级与依赖安装
+system_upgrade_and_install_deps
 
 # 检查 OpenVPN 是否已安装
 check_openvpn_installed() {
