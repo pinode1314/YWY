@@ -3,28 +3,47 @@
 export LANG=en_US.UTF-8
 
 # ==========================================
-# 前置依赖自动检测与安装（加在脚本最前面）
+# 智能前置依赖检测与安装（已安装则自动跳过）
 # ==========================================
 check_and_install_dependencies() {
-    echo "正在检查系统基础依赖..."
-    
-    # 判断系统包管理器类型
+    # 定义核心依赖列表
     if [ -f /etc/debian_version ]; then
-        # Debian / Ubuntu 系统
-        apt-get update -y
-        apt-get install -y curl wget sudo make gcc g++ tar socat openssl net-tools ufw
+        # Debian / Ubuntu 系统的关键依赖
+        local deps=("curl" "wget" "sudo" "make" "gcc" "g++" "tar" "socat" "openssl")
+        local missing_deps=()
+
+        for dep in "${deps[@]}"; do
+            if ! dpkg -l | grep -q "ii  $dep "; then
+                missing_deps+=("$dep")
+            fi
+        done
+
+        # 如果有缺失的依赖，才执行更新和安装
+        if [ ${#missing_deps[@]} -gt 0 ]; then
+            echo "检测到缺少部分基础依赖，正在自动补全安装..."
+            apt-get update -y >/dev/null 2>&1
+            apt-get install -y "${missing_deps[@]}" ufw >/dev/null 2>&1
+        fi
     elif [ -f /etc/redhat-release ] || grep -q "CentOS" /etc/os-release; then
-        # CentOS / RHEL / Fedora 系统
-        yum update -y
-        yum install -y curl wget sudo make gcc gcc-c++ tar socat openssl net-tools firewalld
-    else
-        echo "未识别的操作系统，请手动安装 curl, wget, sudo, make, gcc 等基础依赖。"
+        # CentOS / RHEL / Fedora 系统的关键依赖
+        local deps=("curl" "wget" "sudo" "make" "gcc" "gcc-c++" "tar" "socat" "openssl")
+        local missing_deps=()
+
+        for dep in "${deps[@]}"; do
+            if ! rpm -q "$dep" &>/dev/null; then
+                missing_deps+=("$dep")
+            fi
+        done
+
+        if [ ${#missing_deps[@]} -gt 0 ]; then
+            echo "检测到缺少部分基础依赖，正在自动补全安装..."
+            yum update -y >/dev/null 2>&1
+            yum install -y "${missing_deps[@]}" firewalld >/dev/null 2>&1
+        fi
     fi
-    
-    echo "基础依赖检查与安装完成！"
 }
 
-# 执行依赖检查函数
+# 执行依赖智能检查
 check_and_install_dependencies
 
 # 定义颜色变量
