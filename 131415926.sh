@@ -2,20 +2,30 @@
 
 export LANG=en_US.UTF-8
 
-# ==================== 自动检测并安装 wget 和 curl ====================
-if ! command -v wget &> /dev/null || ! command -v curl &> /dev/null; then
-    echo "正在检测并自动安装必要的下载工具 (wget/curl)..."
-    if command -v apt-get &> /dev/null; then
-        apt-get update -y && apt-get install -y wget curl
-    elif command -v yum &> /dev/null; then
-        yum install -y wget curl
-    elif command -v dnf &> /dev/null; then
-        dnf install -y wget curl
+# ==========================================
+# 前置依赖自动检测与安装（加在脚本最前面）
+# ==========================================
+check_and_install_dependencies() {
+    echo "正在检查系统基础依赖..."
+    
+    # 判断系统包管理器类型
+    if [ -f /etc/debian_version ]; then
+        # Debian / Ubuntu 系统
+        apt-get update -y
+        apt-get install -y curl wget sudo make gcc g++ tar socat openssl net-tools ufw
+    elif [ -f /etc/redhat-release ] || grep -q "CentOS" /etc/os-release; then
+        # CentOS / RHEL / Fedora 系统
+        yum update -y
+        yum install -y curl wget sudo make gcc gcc-c++ tar socat openssl net-tools firewalld
     else
-        echo "错误: 无法自动安装依赖，请手动执行安装命令！"
+        echo "未识别的操作系统，请手动安装 curl, wget, sudo, make, gcc 等基础依赖。"
     fi
-fi
-# ====================================================================
+    
+    echo "基础依赖检查与安装完成！"
+}
+
+# 执行依赖检查函数
+check_and_install_dependencies
 
 # 定义颜色变量
 RED='\033[1;31m'
