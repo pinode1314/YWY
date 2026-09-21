@@ -2,6 +2,21 @@
 
 export LANG=en_US.UTF-8
 
+# ==================== 自动检测并安装 wget 和 curl ====================
+if ! command -v wget &> /dev/null || ! command -v curl &> /dev/null; then
+    echo "正在检测并自动安装必要的下载工具 (wget/curl)..."
+    if command -v apt-get &> /dev/null; then
+        apt-get update -y && apt-get install -y wget curl
+    elif command -v yum &> /dev/null; then
+        yum install -y wget curl
+    elif command -v dnf &> /dev/null; then
+        dnf install -y wget curl
+    else
+        echo "错误: 无法自动安装依赖，请手动执行安装命令！"
+    fi
+fi
+# ====================================================================
+
 # 定义颜色变量
 RED='\033[1;31m'
 GREEN='\033[1;32m'
@@ -14,38 +29,6 @@ if [ "$EUID" -ne 0 ]; then
     printf "${RED}❌ 请使用 root 权限运行此脚本！(例如: sudo bash menu.sh)\n${NC}"
     exit 1
 fi
-
-# ----------------- 检查并自动安装基础依赖 -----------------
-check_and_install_dependencies() {
-    local deps=("wget" "curl" "ca-certificates")
-    local missing_deps=()
-
-    for dep in "${deps[@]}"; do
-        if ! command -v "$dep" >/dev/null 2>&1; then
-            missing_deps+=("$dep")
-        fi
-    done
-
-    if [ ${#missing_deps[@]} -gt 0 ]; then
-        echo "=== 检测到系统缺少必要依赖: ${missing_deps[*]}，正在为您自动安装... ==="
-        if command -v apt-get >/dev/null 2>&1; then
-            export DEBIAN_FRONTEND=noninteractive
-            apt-get update -y
-            apt-get install -y "${missing_deps[@]}"
-        elif command -v yum >/dev/null 2>&1; then
-            yum install -y "${missing_deps[@]}"
-        elif command -v dnf >/dev/null 2>&1; then
-            dnf install -y "${missing_deps[@]}"
-        else
-            printf "${RED}❌ 未能识别的包管理器，请手动安装以下工具: ${missing_deps[*]}\n${NC}"
-            exit 1
-        fi
-        echo "=== 依赖安装完成 ==="
-    fi
-}
-
-# 执行依赖检测
-check_and_install_dependencies
 
 # 检查 OpenVPN 是否已安装
 check_openvpn_installed() {
