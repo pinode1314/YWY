@@ -8,13 +8,14 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# 智能依赖检测：如果全部已安装则直接静默跳过，绝不输出多余日志
+# 更加精确的智能依赖检测：完全静默且不重复触发
 if [ -x "$(command -v apt)" ]; then
     export DEBIAN_FRONTEND=noninteractive
     apt_deps=(curl wget procps qrencode openssl socat cron iptables iptables-persistent netfilter-persistent build-essential gcc g++ make tar pkg-config autoconf automake zlib1g-dev libssl-dev)
     missing_apt_deps=()
     for pkg in "${apt_deps[@]}"; do
-        if ! dpkg -l | grep -q "^ii  $pkg "; then
+        # 使用 dpkg -s 检查，只有真正未安装时才加入队列
+        if ! dpkg -s "$pkg" &>/dev/null; then
             missing_apt_deps+=("$pkg")
         fi
     done
