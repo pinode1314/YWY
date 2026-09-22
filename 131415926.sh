@@ -569,7 +569,7 @@ while true; do
     printf "${SKYBLUE}=========================================\n${NC}"
     printf "${SKYBLUE}     ⚡ 【夜未央】 脚本工具箱 ⚡         \n${NC}"
     printf "${SKYBLUE}=========================================\n${NC}"
-    echo " 1. 安装 OpenVPN 服务端"
+    echo " 1. 安装 OpenVPN 服务端与客户端管理"
     echo " 2. 安装 Hysteria 2"
     echo " 3. 安装 FRP 端口映射"
     echo " 4. 安装 Rinetd TCP端口映射"
