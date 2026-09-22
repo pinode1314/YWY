@@ -21,8 +21,8 @@ check_and_install_dependencies() {
         # 如果有缺失的依赖，才执行更新和安装
         if [ ${#missing_deps[@]} -gt 0 ]; then
             echo "检测到缺少部分基础依赖，正在自动补全安装..."
-            apt-get update -y >/dev/null 2>&1
-            apt-get install -y "${missing_deps[@]}" ufw >/dev/null 2>&1
+            apt-get update -y
+            apt-get install -y "${missing_deps[@]}" ufw
         fi
     elif [ -f /etc/redhat-release ] || grep -q "CentOS" /etc/os-release; then
         # CentOS / RHEL / Fedora 系统的关键依赖
@@ -37,8 +37,8 @@ check_and_install_dependencies() {
 
         if [ ${#missing_deps[@]} -gt 0 ]; then
             echo "检测到缺少部分基础依赖，正在自动补全安装..."
-            yum update -y >/dev/null 2>&1
-            yum install -y "${missing_deps[@]}" firewalld >/dev/null 2>&1
+            yum update -y
+            yum install -y "${missing_deps[@]}" firewalld
         fi
     fi
 }
@@ -536,7 +536,7 @@ do_firewall_manager() {
     while true; do
         echo ""
         printf "${SKYBLUE}=========================================\n${NC}"
-        printf "${SKYBLUE}       🛡️ 多系统防火墙管理子菜单 🛡️        \n${NC}"
+        printf "${SKYBLUE}        🛡️ 多系统防火墙管理子菜单 🛡️         \n${NC}"
         printf "${SKYBLUE}=========================================\n${NC}"
         echo " 1. 检测系统防火墙安装、状态与端口规则"
         echo " 2. 安装指定防火墙 (带冲突检测)"
@@ -565,7 +565,7 @@ do_firewall_manager() {
 while true; do
     echo ""
     printf "${SKYBLUE}=========================================\n${NC}"
-    printf "${SKYBLUE}      ⚡ 【夜未央】 脚本工具箱 ⚡        \n${NC}"
+    printf "${SKYBLUE}     ⚡ 【夜未央】 脚本工具箱 ⚡         \n${NC}"
     printf "${SKYBLUE}=========================================\n${NC}"
     echo " 1. 安装 OpenVPN 服务端与客户端管理"
     echo " 2. 安装 Hysteria 2"
