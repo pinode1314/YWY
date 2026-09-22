@@ -8,12 +8,9 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-echo "=== 正在检测系统环境并自动安装缺失的必要依赖 ==="
-
-# 智能跳过已安装依赖的检测与安装逻辑
+# 智能依赖检测：如果全部已安装则直接静默跳过，绝不输出多余日志
 if [ -x "$(command -v apt)" ]; then
     export DEBIAN_FRONTEND=noninteractive
-    # 定义 Debian/Ubuntu 所需的所有依赖包
     apt_deps=(curl wget procps qrencode openssl socat cron iptables iptables-persistent netfilter-persistent build-essential gcc g++ make tar pkg-config autoconf automake zlib1g-dev libssl-dev)
     missing_apt_deps=()
     for pkg in "${apt_deps[@]}"; do
@@ -22,7 +19,9 @@ if [ -x "$(command -v apt)" ]; then
         fi
     done
     if [ ${#missing_apt_deps[@]} -gt 0 ]; then
+        echo "=== 正在检测系统环境并自动安装缺失的必要依赖 ==="
         apt-get install -y "${missing_apt_deps[@]}"
+        echo "=== 系统依赖安装完成 ==="
     fi
 elif [ -x "$(command -v dnf)" ]; then
     dnf_deps=(curl wget procps qrencode openssl socat cronie iptables iptables-services gcc g++ make tar pkgconfig autoconf automake zlib-devel openssl-devel)
@@ -33,8 +32,10 @@ elif [ -x "$(command -v dnf)" ]; then
         fi
     done
     if [ ${#missing_dnf_deps[@]} -gt 0 ]; then
+        echo "=== 正在检测系统环境并自动安装缺失的必要依赖 ==="
         dnf check-update -y &>/dev/null
         dnf install -y "${missing_dnf_deps[@]}"
+        echo "=== 系统依赖安装完成 ==="
     fi
 elif [ -x "$(command -v yum)" ]; then
     yum_deps=(curl wget procps qrencode openssl socat cronie iptables iptables-services gcc g++ make tar pkgconfig autoconf automake zlib-devel openssl-devel)
@@ -45,14 +46,14 @@ elif [ -x "$(command -v yum)" ]; then
         fi
     done
     if [ ${#missing_yum_deps[@]} -gt 0 ]; then
+        echo "=== 正在检测系统环境并自动安装缺失的必要依赖 ==="
         yum check-update -y &>/dev/null
         yum install -y "${missing_yum_deps[@]}"
+        echo "=== 系统依赖安装完成 ==="
     fi
 else
     echo "⚠️ 未识别到支持的包管理器 (apt/dnf/yum)，跳过自动依赖安装，请确保已手动安装相关依赖。"
 fi
-
-echo "=== 所有系统依赖检查与安装完成 ==="
 
 # 定义颜色变量
 RED='\033[1;31m'
