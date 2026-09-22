@@ -116,6 +116,11 @@ do_install_softether() {
     bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/SoftEther/main/SoftEther.sh)
 }
 
+do_install_wg() {
+    echo "=== 正在启动 WireGuard 一键脚本 ==="
+    bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/WG/main/WG.sh)
+}
+
 do_install_singbox() {
     # 更加严谨的判断：必须同时存在快捷命令 sb 且核心二进制文件 /etc/s-box/sing-box 真实存在，才认为是已安装
     if [ -f /etc/s-box/sing-box ] && command -v sb >/dev/null 2>&1; then
@@ -576,12 +581,13 @@ while true; do
     echo " 3. 安装 FRP 端口映射"
     echo " 4. 安装 Rinetd TCP端口映射"
     echo " 5. 安装 SoftEther VPN"
-    echo " 6. sing-box 五合一脚本"
-    echo " 7. 科技lion Linux服务器运维工具箱"
-    echo " 8. 系统防火墙管理"
+    echo " 6. 安装 WireGuard VPN"
+    echo " 7. sing-box 五合一脚本"
+    echo " 8. 科技lion Linux服务器运维工具箱"
+    echo " 9. 系统防火墙管理"
     echo " 0. 退出脚本"
     printf "${SKYBLUE}=========================================\n${NC}"
-    read -p "请选择操作 [0-8]: " CHOICE
+    read -p "请选择操作 [0-9]: " CHOICE
 
     case "$CHOICE" in
         1)
@@ -600,12 +606,15 @@ while true; do
             do_install_softether
             ;;
         6)
-            do_install_singbox
+            do_install_wg
             ;;
         7)
-            do_install_kejilion
+            do_install_singbox
             ;;
         8)
+            do_install_kejilion
+            ;;
+        9)
             do_firewall_manager
             ;;
         0)
@@ -613,7 +622,7 @@ while true; do
             break
             ;;
         *)
-            printf "${RED}❌ 无效的选项，请输入 0 到 8 之间的数字。\n${NC}"
+            printf "${RED}❌ 无效的选项，请输入 0 到 9 之间的数字。\n${NC}"
             ;;
     esac
 done
