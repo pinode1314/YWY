@@ -2,49 +2,57 @@
 
 export LANG=en_US.UTF-8
 
-# ==========================================
-# 智能前置依赖检测与安装（已安装则自动跳过）
-# ==========================================
-check_and_install_dependencies() {
-    # 定义核心依赖列表
-    if [ -f /etc/debian_version ]; then
-        # Debian / Ubuntu 系统的关键依赖
-        local deps=("curl" "wget" "sudo" "make" "gcc" "g++" "tar" "socat" "openssl")
-        local missing_deps=()
+# 确保以 root 权限运行
+if [ "$EUID" -ne 0 ]; then
+    printf "❌ 请使用 root 权限运行此脚本！(例如: sudo bash menu.sh)\n"
+    exit 1
+fi
 
-        for dep in "${deps[@]}"; do
-            if ! dpkg -l | grep -q "ii  $dep "; then
-                missing_deps+=("$dep")
-            fi
-        done
+echo "=== 正在检测系统环境并自动安装缺失的必要依赖 ==="
 
-        # 如果有缺失的依赖，才执行更新和安装
-        if [ ${#missing_deps[@]} -gt 0 ]; then
-            echo "检测到缺少部分基础依赖，正在自动补全安装..."
-            apt-get update -y
-            apt-get install -y "${missing_deps[@]}" ufw
+# 智能跳过已安装依赖的检测与安装逻辑
+if [ -x "$(command -v apt)" ]; then
+    export DEBIAN_FRONTEND=noninteractive
+    # 定义 Debian/Ubuntu 所需的所有依赖包
+    apt_deps=(curl wget procps qrencode openssl socat cron iptables iptables-persistent netfilter-persistent build-essential gcc g++ make tar pkg-config autoconf automake zlib1g-dev libssl-dev)
+    missing_apt_deps=()
+    for pkg in "${apt_deps[@]}"; do
+        if ! dpkg -l | grep -q "^ii  $pkg "; then
+            missing_apt_deps+=("$pkg")
         fi
-    elif [ -f /etc/redhat-release ] || grep -q "CentOS" /etc/os-release; then
-        # CentOS / RHEL / Fedora 系统的关键依赖
-        local deps=("curl" "wget" "sudo" "make" "gcc" "gcc-c++" "tar" "socat" "openssl")
-        local missing_deps=()
-
-        for dep in "${deps[@]}"; do
-            if ! rpm -q "$dep" &>/dev/null; then
-                missing_deps+=("$dep")
-            fi
-        done
-
-        if [ ${#missing_deps[@]} -gt 0 ]; then
-            echo "检测到缺少部分基础依赖，正在自动补全安装..."
-            yum update -y
-            yum install -y "${missing_deps[@]}" firewalld
-        fi
+    done
+    if [ ${#missing_apt_deps[@]} -gt 0 ]; then
+        apt-get install -y "${missing_apt_deps[@]}"
     fi
-}
+elif [ -x "$(command -v dnf)" ]; then
+    dnf_deps=(curl wget procps qrencode openssl socat cronie iptables iptables-services gcc g++ make tar pkgconfig autoconf automake zlib-devel openssl-devel)
+    missing_dnf_deps=()
+    for pkg in "${dnf_deps[@]}"; do
+        if ! rpm -q "$pkg" &>/dev/null; then
+            missing_dnf_deps+=("$pkg")
+        fi
+    done
+    if [ ${#missing_dnf_deps[@]} -gt 0 ]; then
+        dnf check-update -y &>/dev/null
+        dnf install -y "${missing_dnf_deps[@]}"
+    fi
+elif [ -x "$(command -v yum)" ]; then
+    yum_deps=(curl wget procps qrencode openssl socat cronie iptables iptables-services gcc g++ make tar pkgconfig autoconf automake zlib-devel openssl-devel)
+    missing_yum_deps=()
+    for pkg in "${yum_deps[@]}"; do
+        if ! rpm -q "$pkg" &>/dev/null; then
+            missing_yum_deps+=("$pkg")
+        fi
+    done
+    if [ ${#missing_yum_deps[@]} -gt 0 ]; then
+        yum check-update -y &>/dev/null
+        yum install -y "${missing_yum_deps[@]}"
+    fi
+else
+    echo "⚠️ 未识别到支持的包管理器 (apt/dnf/yum)，跳过自动依赖安装，请确保已手动安装相关依赖。"
+fi
 
-# 执行依赖智能检查
-check_and_install_dependencies
+echo "=== 所有系统依赖检查与安装完成 ==="
 
 # 定义颜色变量
 RED='\033[1;31m'
@@ -52,12 +60,6 @@ GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
 SKYBLUE='\033[1;36m'
 NC='\033[0m' # 恢复默认颜色
-
-# 检查是否为 root 用户
-if [ "$EUID" -ne 0 ]; then
-    printf "${RED}❌ 请使用 root 权限运行此脚本！(例如: sudo bash menu.sh)\n${NC}"
-    exit 1
-fi
 
 # 检查 OpenVPN 是否已安装
 check_openvpn_installed() {
@@ -246,7 +248,7 @@ install_firewall() {
     case "$TARGET_FW" in
         ufw)
             export DEBIAN_FRONTEND=noninteractive
-            apt-get update -y && apt-get install -y ufw
+            apt-get install -y ufw
             ufw allow 22/tcp >/dev/null 2>&1
             ufw allow 80/tcp >/dev/null 2>&1
             ufw allow 443/tcp >/dev/null 2>&1
@@ -254,7 +256,7 @@ install_firewall() {
             printf "${GREEN}✔ UFW 防火墙安装完成，并已自动放行默认基础端口 (22, 80, 443)。\n${NC}"
             ;;
         firewalld)
-            apt-get update -y && apt-get install -y firewalld 2>/dev/null || yum install -y firewalld
+            apt-get install -y firewalld 2>/dev/null || yum install -y firewalld
             systemctl enable firewalld --now
             firewall-cmd --permanent --zone=public --add-port=22/tcp >/dev/null 2>&1
             firewall-cmd --permanent --zone=public --add-port=80/tcp >/dev/null 2>&1
@@ -264,7 +266,7 @@ install_firewall() {
             ;;
         iptables)
             export DEBIAN_FRONTEND=noninteractive
-            apt-get update -y && apt-get install -y iptables iptables-persistent 2>/dev/null || yum install -y iptables iptables-services
+            apt-get install -y iptables iptables-persistent 2>/dev/null || yum install -y iptables iptables-services
             iptables -A INPUT -p tcp --dport 22 -j ACCEPT
             iptables -A INPUT -p tcp --dport 80 -j ACCEPT
             iptables -A INPUT -p tcp --dport 443 -j ACCEPT
@@ -567,7 +569,7 @@ while true; do
     printf "${SKYBLUE}=========================================\n${NC}"
     printf "${SKYBLUE}     ⚡ 【夜未央】 脚本工具箱 ⚡         \n${NC}"
     printf "${SKYBLUE}=========================================\n${NC}"
-    echo " 1. 安装 OpenVPN 服务端与客户端管理"
+    echo " 1. 安装 OpenVPN 服务端"
     echo " 2. 安装 Hysteria 2"
     echo " 3. 安装 FRP 端口映射"
     echo " 4. 安装 Rinetd TCP端口映射"
