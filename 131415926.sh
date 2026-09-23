@@ -73,13 +73,9 @@ do_install_singbox() {
     bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/5/main/5.sh)
 }
 
-do_install_kejilion() {
-    echo "=== 科技lion Linux服务器运维工具箱 ==="
-    if command -v kejilion >/dev/null 2>&1; then
-        kejilion
-    else
-        bash <(curl -sL kejilion.sh)
-    fi
+do_install_system_tools() {
+    echo "=== 正在启动 linux系统工具 ==="
+    bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/SSH/main/SSH.sh)
 }
 
 do_install_firewall() {
@@ -99,7 +95,7 @@ while true; do
     echo " 4. 安装 rinetd TCP端口映射"
     echo " 5. 安装 SoftEther VPN"
     echo " 6. sing-box 五合一脚本"
-    echo " 7. 科技lion Linux服务器运维工具箱"
+    echo " 7. linux系统工具"
     echo " 8. 系统防火墙管理"
     echo " 0. 退出脚本"
     printf "${SKYBLUE}=========================================\n${NC}"
@@ -125,7 +121,7 @@ while true; do
             do_install_singbox
             ;;
         7)
-            do_install_kejilion
+            do_install_system_tools
             ;;
         8)
             do_install_firewall
