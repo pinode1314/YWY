@@ -8,10 +8,16 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# 更加精确的智能依赖检测：完全静默且不重复触发，添加 apt-mark manual 标记防止被 autoremove 误删
+# 更加精确的智能依赖检测：完全静默且不重复触发
+# 将自动安装的依赖全部标记为手动安装 (apt-mark manual)，防止其他脚本执行 autoremove 时误删依赖
 if [ -x "$(command -v apt)" ]; then
     export DEBIAN_FRONTEND=noninteractive
-    apt_deps=(curl wget procps qrencode openssl socat cron iptables iptables-persistent netfilter-persistent build-essential gcc g++ make tar pkg-config autoconf automake zlib1g-dev libssl-dev)
+    apt_deps=(
+        curl wget procps qrencode openssl socat cron iptables iptables-persistent 
+        netfilter-persistent build-essential gcc g++ make tar pkg-config autoconf 
+        automake zlib1g-dev libssl-dev jq expect python3 git iproute2 iputils-ping 
+        net-tools xxd
+    )
     missing_apt_deps=()
     for pkg in "${apt_deps[@]}"; do
         # 使用 dpkg -s 检查，只有真正未安装时才加入队列
@@ -22,13 +28,18 @@ if [ -x "$(command -v apt)" ]; then
     if [ ${#missing_apt_deps[@]} -gt 0 ]; then
         echo "=== 正在检测系统环境并自动安装缺失的必要依赖 ==="
         apt-get update -y
-        apt-get install -y "${missing_apt_deps[@]}"
-        # 将安装的依赖标记为手动安装，防止被其他脚本的 apt autoremove 误删
+        # 使用 --no-install-recommends 保持环境干净，避免引入多余软依赖
+        apt-get install -y --no-install-recommends "${missing_apt_deps[@]}"
+        # 将所有补齐的依赖明确标记为“手动安装”，防止后续被 autoremove 误清理
         apt-mark manual "${apt_deps[@]}" &>/dev/null
-        echo "=== 系统依赖安装完成 ==="
+        echo "=== 系统依赖安装与保护标记完成 ==="
     fi
 elif [ -x "$(command -v dnf)" ]; then
-    dnf_deps=(curl wget procps qrencode openssl socat cronie iptables iptables-services gcc g++ make tar pkgconfig autoconf automake zlib-devel openssl-devel)
+    dnf_deps=(
+        curl wget procps qrencode openssl socat cronie iptables iptables-services 
+        gcc g++ make tar pkgconfig autoconf automake zlib-devel openssl-devel 
+        jq expect python3 git iproute2 iputils net-tools vim-common
+    )
     missing_dnf_deps=()
     for pkg in "${dnf_deps[@]}"; do
         if ! rpm -q "$pkg" &>/dev/null; then
@@ -39,10 +50,16 @@ elif [ -x "$(command -v dnf)" ]; then
         echo "=== 正在检测系统环境并自动安装缺失的必要依赖 ==="
         dnf check-update -y &>/dev/null
         dnf install -y "${missing_dnf_deps[@]}"
-        echo "=== 系统依赖安装完成 ==="
+        # 在 dnf 中将这些包标记为 userinstalled，防止被 autoremove 误卸载
+        dnf mark install "${dnf_deps[@]}" &>/dev/null
+        echo "=== 系统依赖安装与保护标记完成 ==="
     fi
 elif [ -x "$(command -v yum)" ]; then
-    yum_deps=(curl wget procps qrencode openssl socat cronie iptables iptables-services gcc g++ make tar pkgconfig autoconf automake zlib-devel openssl-devel)
+    yum_deps=(
+        curl wget procps qrencode openssl socat cronie iptables iptables-services 
+        gcc g++ make tar pkgconfig autoconf automake zlib-devel openssl-devel 
+        jq expect python3 git iproute2 iputils net-tools vim-common
+    )
     missing_yum_deps=()
     for pkg in "${yum_deps[@]}"; do
         if ! rpm -q "$pkg" &>/dev/null; then
@@ -53,7 +70,11 @@ elif [ -x "$(command -v yum)" ]; then
         echo "=== 正在检测系统环境并自动安装缺失的必要依赖 ==="
         yum check-update -y &>/dev/null
         yum install -y "${missing_yum_deps[@]}"
-        echo "=== 系统依赖安装完成 ==="
+        # 如果系统中存在 yum-plugin-versionlock 或 yumdb，尝试保护手动安装标志
+        if command -v yumdb &>/dev/null; then
+            yumdb set reason user "${yum_deps[@]}" &>/dev/null
+        fi
+        echo "=== 系统依赖安装与保护标记完成 ==="
     fi
 else
     echo "⚠️ 未识别到支持的包管理器 (apt/dnf/yum)，跳过自动依赖安装，请确保已手动安装相关依赖。"
