@@ -8,7 +8,7 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# 更加精确的智能依赖检测：完全静默且不重复触发
+# 更加精确的智能依赖检测：完全静默且不重复触发，添加 apt-mark manual 标记防止被 autoremove 误删
 if [ -x "$(command -v apt)" ]; then
     export DEBIAN_FRONTEND=noninteractive
     apt_deps=(curl wget procps qrencode openssl socat cron iptables iptables-persistent netfilter-persistent build-essential gcc g++ make tar pkg-config autoconf automake zlib1g-dev libssl-dev)
@@ -21,7 +21,10 @@ if [ -x "$(command -v apt)" ]; then
     done
     if [ ${#missing_apt_deps[@]} -gt 0 ]; then
         echo "=== 正在检测系统环境并自动安装缺失的必要依赖 ==="
+        apt-get update -y
         apt-get install -y "${missing_apt_deps[@]}"
+        # 将安装的依赖标记为手动安装，防止被其他脚本的 apt autoremove 误删
+        apt-mark manual "${apt_deps[@]}" &>/dev/null
         echo "=== 系统依赖安装完成 ==="
     fi
 elif [ -x "$(command -v dnf)" ]; then
@@ -116,64 +119,6 @@ do_install_softether() {
     bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/SoftEther/main/SoftEther.sh)
 }
 
-# ----------------- WireGuard 子菜单相关函数 -----------------
-do_install_wg_debian9() {
-    echo "=== 正在启动 WireGuard Debian 9 一键安装脚本 ==="
-    bash <(wget -qO- git.io/fptwc)
-}
-
-do_install_wg_ubuntu() {
-    echo "=== 正在启动 WireGuard Ubuntu 一键安装脚本 ==="
-    bash <(wget -qO- git.io/fpcnL)
-}
-
-do_uninstall_wg() {
-    echo "=================================================="
-    echo "=== 正在准备卸载 WireGuard 服务及清理残留 ==="
-    echo "=================================================="
-    read -p "⚠️ 确认要彻底卸载 WireGuard 吗？[y/N]: " confirm
-    if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
-        echo "操作已取消。"
-        return
-    fi
-
-    echo "=== 正在停止并移除 WireGuard 服务与相关网卡接口 ==="
-    systemctl stop wg-quick@wg0 >/dev/null 2>&1
-    systemctl disable wg-quick@wg0 >/dev/null 2>&1
-    ip link delete dev wg0 >/dev/null 2>&1
-
-    echo "=== 正在卸载 WireGuard 软件包及配置残留 ==="
-    export DEBIAN_FRONTEND=noninteractive
-    apt-get purge -y wireguard wireguard-tools qrencode >/dev/null 2>&1
-    apt-get autoremove -y >/dev/null 2>&1
-    rm -rf /etc/wireguard
-
-    printf "${GREEN}✔ WireGuard 已被完全卸载并清理干净！\n${NC}"
-}
-
-do_wireguard_manager() {
-    while true; do
-        echo ""
-        printf "${SKYBLUE}=========================================\n${NC}"
-        printf "${SKYBLUE}        🚀 WireGuard VPN 管理子菜单 🚀       \n${NC}"
-        printf "${SKYBLUE}=========================================\n${NC}"
-        echo " 1. 一键安装 WireGuard 脚本 (Debian 9)"
-        echo " 2. 一键安装 WireGuard 脚本 (Ubuntu)"
-        echo " 3. 卸载 WireGuard VPN"
-        echo " 0. 返回大脚本主菜单"
-        printf "${SKYBLUE}=========================================\n${NC}"
-        read -p "请选择操作 [0-3]: " wg_choice
-
-        case "$wg_choice" in
-            1) do_install_wg_debian9 ;;
-            2) do_install_wg_ubuntu ;;
-            3) do_uninstall_wg ;;
-            0) echo "已退出 WireGuard 管理子菜单，返回主菜单。"; break ;;
-            *) printf "${RED}❌ 无效选项，请输入 0 到 3 之间的数字。\n${NC}" ;;
-        esac
-    done
-}
-
 do_install_singbox() {
     # 更加严谨的判断：必须同时存在快捷命令 sb 且核心二进制文件 /etc/s-box/sing-box 真实存在，才认为是已安装
     if [ -f /etc/s-box/sing-box ] && command -v sb >/dev/null 2>&1; then
@@ -199,7 +144,7 @@ do_install_kejilion() {
 }
 
 # ------------------------------------------------------------------
-# ----------------- 系统防火墙管理子菜单 -------------------
+# ----------------- 第 8 项：系统防火墙管理子系统 -------------------
 # ------------------------------------------------------------------
 get_distro_and_fw() {
     hash -r 2>/dev/null
@@ -299,7 +244,7 @@ install_firewall() {
             printf "${YELLOW}⚠️ 检测到当前系统【已经安装】了 $TARGET_FW 防火墙，无需重复安装！\n${NC}"
             return
         else
-            printf "${RED}❌ 检测到当前系统已存在 [$FW_TYPE] 防火墙。为避免冲突，请先将其卸载，再安装新防火墙！\n${NC}"
+            printf "${RED}❌ 检测到当前系统已存在 [$FW_TYPE] 防火墙。为避免冲突，请先通过第 6 项将其卸载，再安装新防火墙！\n${NC}"
             return
         fi
     fi
@@ -344,7 +289,7 @@ install_firewall() {
 control_firewall() {
     get_distro_and_fw
     if [ "$FW_TYPE" == "none" ]; then
-        printf "${RED}❌ 当前系统未检测到防火墙，请先安装！\n${NC}"
+        printf "${RED}❌ 当前系统未检测到防火墙，请先通过第 2 项进行安装！\n${NC}"
         return
     fi
 
@@ -634,13 +579,12 @@ while true; do
     echo " 3. 安装 FRP 端口映射"
     echo " 4. 安装 Rinetd TCP端口映射"
     echo " 5. 安装 SoftEther VPN"
-    echo " 6. 一键安装 WireGuard VPN"
-    echo " 7. sing-box 五合一脚本"
-    echo " 8. 科技lion Linux服务器运维工具箱"
-    echo " 9. 系统防火墙管理"
+    echo " 6. sing-box 五合一脚本"
+    echo " 7. 科技lion Linux服务器运维工具箱"
+    echo " 8. 系统防火墙管理"
     echo " 0. 退出脚本"
     printf "${SKYBLUE}=========================================\n${NC}"
-    read -p "请选择操作 [0-9]: " CHOICE
+    read -p "请选择操作 [0-8]: " CHOICE
 
     case "$CHOICE" in
         1)
@@ -659,15 +603,12 @@ while true; do
             do_install_softether
             ;;
         6)
-            do_wireguard_manager
-            ;;
-        7)
             do_install_singbox
             ;;
-        8)
+        7)
             do_install_kejilion
             ;;
-        9)
+        8)
             do_firewall_manager
             ;;
         0)
@@ -675,7 +616,7 @@ while true; do
             break
             ;;
         *)
-            printf "${RED}❌ 无效的选项，请输入 0 到 9 之间的数字。\n${NC}"
+            printf "${RED}❌ 无效的选项，请输入 0 到 8 之间的数字。\n${NC}"
             ;;
     esac
 done
