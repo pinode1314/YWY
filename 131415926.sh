@@ -141,18 +141,8 @@ do_install_softether() {
 }
 
 do_install_singbox() {
-    # 更加严谨的判断：必须同时存在快捷命令 sb 且核心二进制文件 /etc/s-box/sing-box 真实存在，才认为是已安装
-    if [ -f /etc/s-box/sing-box ] && command -v sb >/dev/null 2>&1; then
-        echo "=== 检测到 sing-box 已安装，正在打开管理菜单（可查看配置、卸载等） ==="
-        sb
-        return
-    fi
-
-    # 否则（说明刚卸载过或是初次安装），走完整安装和自动生成订阅流程
-    echo "=== 正在启动 sing-box 五合一脚本安装 ==="
-    bash <(wget -qO- https://raw.githubusercontent.com/yonggekkk/sing-box-yg/main/sb.sh)
-    echo "=== 正在自动配置并生成本地IP订阅链接 ==="
-    printf '3\n8\n1\n888988' | sb
+    echo "=== 正在启动五合一脚本 ==="
+    bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/5/main/5.sh)
 }
 
 do_install_kejilion() {
