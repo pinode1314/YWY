@@ -85,6 +85,16 @@ do_install_firewall() {
     bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/firewall/main/firewall.sh)
 }
 
+# ----------------- AmneziaWG 安装管理函数 -----------------
+do_install_amneziawg() {
+    echo "=== 正在下载并启动 AmneziaWG 一键搭建与管理脚本 ==="
+    if [ ! -f "amneziawg-install.sh" ]; then
+        curl -O https://raw.githubusercontent.com/wiresock/amneziawg-install/main/amneziawg-install.sh >/dev/null 2>&1
+        chmod +x amneziawg-install.sh
+    fi
+    sudo ./amneziawg-install.sh
+}
+
 # ----------------- 主菜单循环 -----------------
 while true; do
     echo ""
@@ -99,9 +109,10 @@ while true; do
     echo " 6. sing-box 五合一脚本"
     echo " 7. linux系统工具"
     echo " 8. 系统防火墙管理"
+    echo " 9. 安装 AmneziaWG VPN"
     echo " 0. 退出脚本"
     printf "${SKYBLUE}=========================================\n${NC}"
-    read -p "请选择操作 [0-8]: " CHOICE
+    read -p "请选择操作 [0-9]: " CHOICE
 
     case "$CHOICE" in
         1)
@@ -128,12 +139,15 @@ while true; do
         8)
             do_install_firewall
             ;;
+        9)
+            do_install_amneziawg
+            ;;
         0)
             echo "已安全退出脚本。"
             break
             ;;
         *)
-            printf "${RED}❌ 无效的选项，请输入 0 到 8 之间的数字。\n${NC}"
+            printf "${RED}❌ 无效的选项，请输入 0 到 9 之间的数字。\n${NC}"
             ;;
     esac
 done
