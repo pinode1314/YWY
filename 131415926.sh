@@ -85,7 +85,7 @@ do_install_firewall() {
     bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/firewall/main/firewall.sh)
 }
 
-# ----------------- AmneziaWG 安装管理函数（完美汉化版） -----------------
+# ----------------- AmneziaWG 安装管理函数（全菜单深度汉化版） -----------------
 do_install_amneziawg() {
     echo "=== 正在下载并准备 AmneziaWG 一键搭建与管理脚本 ==="
     
@@ -94,7 +94,7 @@ do_install_amneziawg() {
     curl -sO https://raw.githubusercontent.com/wiresock/amneziawg-install/main/amneziawg-install.sh
     
     if [ -f "amneziawg-install.sh" ]; then
-        # 使用 # 作为分隔符，彻底解决特殊字符和报错问题
+        # 主菜单及基础提示汉化
         sed -i 's#It looks like AmneziaWG is already installed.#检测到系统已安装 AmneziaWG。#g' amneziawg-install.sh
         sed -i 's#AmneziaWG server installer#AmneziaWG 服务端安装与管理工具#g' amneziawg-install.sh
         sed -i 's#What do you want to do?#请选择您想要进行的操作：#g' amneziawg-install.sh
@@ -108,7 +108,11 @@ do_install_amneziawg() {
         sed -i 's#7) Exit#7) 退出脚本#g' amneziawg-install.sh
         sed -i 's#Select an option#请选择一个选项#g' amneziawg-install.sh
         
-        # 安装过程中的其他常见提示汉化
+        # 子菜单项：吊销用户相关提示汉化
+        sed -i 's#Select the existing client you want to revoke#请选择您想要吊销/删除的客户端#g' amneziawg-install.sh
+        sed -i 's#Select one client#请选择一个客户端#g' amneziawg-install.sh
+
+        # 安装/添加用户等其他常见交互提示汉化
         sed -i 's#Public IPv4 address#请输入或确认您的 公网 IPv4 地址#g' amneziawg-install.sh
         sed -i 's#Server AmneziaWG port#请输入 AmneziaWG 服务监听端口#g' amneziawg-install.sh
         sed -i 's#Client name#请输入客户端名称#g' amneziawg-install.sh
