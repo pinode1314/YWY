@@ -112,6 +112,12 @@ do_install_amneziawg() {
         sed -i 's#Select the existing client you want to revoke#请选择您想要吊销/删除的客户端#g' amneziawg-install.sh
         sed -i 's#Select one client#请选择一个客户端#g' amneziawg-install.sh
 
+        # 子菜单项：第 5 项协议修改菜单汉化
+        sed -i 's#Current AmneziaWG protocol mode:#当前 AmneziaWG 协议模式：#g' amneziawg-install.sh
+        sed -i 's#1) Enable AWG 3.0 (header protection)#1) 启用 AWG 3.0 (头部保护)#g' amneziawg-install.sh
+        sed -i 's#2) Enable AWG 3.1 (header protection + RandomTrailers; DisableCookies stays off)#2) 启用 AWG 3.1 (头部保护 + 随机尾部；关闭禁用Cookie)#g' amneziawg-install.sh
+        sed -i 's#3) Cancel#3) 取消#g' amneziawg-install.sh
+
         # 安装/添加用户等其他常见交互提示汉化
         sed -i 's#Public IPv4 address#请输入或确认您的 公网 IPv4 地址#g' amneziawg-install.sh
         sed -i 's#Server AmneziaWG port#请输入 AmneziaWG 服务监听端口#g' amneziawg-install.sh
