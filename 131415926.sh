@@ -85,7 +85,7 @@ do_install_firewall() {
     bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/firewall/main/firewall.sh)
 }
 
-# ----------------- AmneziaWG 安装管理函数（全流程终极汉化版） -----------------
+# ----------------- AmneziaWG 安装管理函数（全流程终极全汉化版） -----------------
 do_install_amneziawg() {
     echo "=== 正在下载并准备 AmneziaWG 一键搭建与管理脚本 ==="
     
@@ -161,10 +161,12 @@ do_install_amneziawg() {
         sed -i 's#2) Enable AWG 3.1 (header protection + RandomTrailers; DisableCookies stays off)#2) 启用 AWG 3.1 (头部保护 + 随机尾部；关闭禁用Cookie)#g' amneziawg-install.sh
         sed -i 's#3) Cancel#3) 取消#g' amneziawg-install.sh
 
-        # 7. 子菜单项：第 6 项卸载提示汉化
+        # 7. 子菜单项：第 6 项卸载提示及完成提示汉化
         sed -i 's#This will uninstall AmneziaWG and remove all the configuration files!#这将卸载 AmneziaWG 并删除所有配置文件！#g' amneziawg-install.sh
         sed -i 's#Please backup the /etc/amnezia/amneziawg directory if you want to keep your configuration files.#如果您想保留配置文件，请备份 /etc/amnezia/amneziawg 目录。#g' amneziawg-install.sh
         sed -i 's#Do you really want to remove AmneziaWG?#您确定要卸载 AmneziaWG 吗？#g' amneziawg-install.sh
+        sed -i 's#All packages are up to date.#所有软件包已是最新版本。#g' amneziawg-install.sh
+        sed -i 's#AmneziaWG uninstalled successfully.#AmneziaWG 已成功卸载。#g' amneziawg-install.sh
 
         # 8. 其他常见安装/配置提示汉化
         sed -i 's#Public IPv4 address#请输入或确认您的 公网 IPv4 地址#g' amneziawg-install.sh
