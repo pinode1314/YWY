@@ -85,7 +85,7 @@ do_install_firewall() {
     bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/firewall/main/firewall.sh)
 }
 
-# ----------------- AmneziaWG 安装管理函数（全菜单深度汉化版） -----------------
+# ----------------- AmneziaWG 安装管理函数（全流程终极汉化版） -----------------
 do_install_amneziawg() {
     echo "=== 正在下载并准备 AmneziaWG 一键搭建与管理脚本 ==="
     
@@ -94,7 +94,50 @@ do_install_amneziawg() {
     curl -sO https://raw.githubusercontent.com/wiresock/amneziawg-install/main/amneziawg-install.sh
     
     if [ -f "amneziawg-install.sh" ]; then
-        # 主菜单及基础提示汉化
+        # 1. 安装前引导及基础配置项汉化
+        sed -i 's#I need to ask you a few questions before starting the setup.#在开始安装之前，需要向您确认几个配置问题。#g' amneziawg-install.sh
+        sed -i 's#You can keep the default options and just press enter if you are ok with them.#如果您接受默认选项，直接按回车键即可使用默认值。#g' amneziawg-install.sh
+        sed -i 's#Public IPv4 or IPv6 address or domain:#公网 IPv4、IPv6 地址或域名：#g' amneziawg-install.sh
+        sed -i 's#Public interface:#公网网卡接口：#g' amneziawg-install.sh
+        sed -i 's#AmneziaWG interface name:#AmneziaWG 网卡接口名称：#g' amneziawg-install.sh
+        sed -i 's#Server AmneziaWG IPv4:#服务端 AmneziaWG IPv4 地址：#g' amneziawg-install.sh
+        sed -i 's#Enable IPv6 support (tunnel + NAT)?#是否启用 IPv6 支持 (隧道 + NAT)？#g' amneziawg-install.sh
+        sed -i 's#First DNS resolver to use for the clients:#客户端首选 DNS 解析服务器：#g' amneziawg-install.sh
+        sed -i 's#Second DNS resolver to use for the clients (optional):#客户端备用 DNS 解析服务器 (可选)：#g' amneziawg-install.sh
+
+        # 2. 路由及高级混淆参数提示汉化
+        sed -i 's#AmneziaWG uses a parameter called AllowedIPs to-determine what is routed over the VPN.#AmneziaWG 使用 AllowedIPs 参数来决定哪些流量通过 VPN 路由。#g' amneziawg-install.sh
+        sed -i 's#AmneziaWG uses a parameter called AllowedIPs to determine what is routed over the VPN.#AmneziaWG 使用 AllowedIPs 参数来决定哪些流量通过 VPN 路由。#g' amneziawg-install.sh
+        sed -i 's#Allowed IPs list for generated clients (leave default to route everything):#生成客户端的 AllowedIPs 列表 (留空默认路由所有流量)：#g' amneziawg-install.sh
+        sed -i 's#Server AmneziaWG Jc#服务端 AmneziaWG Jc 混淆包数量#g' amneziawg-install.sh
+        sed -i 's#Server AmneziaWG Jmin#服务端 AmneziaWG Jmin 最小垃圾包大小#g' amneziawg-install.sh
+        sed -i 's#Server AmneziaWG Jmax#服务端 AmneziaWG Jmax 最大垃圾包大小#g' amneziawg-install.sh
+        sed -i 's#Server AmneziaWG S1#服务端 AmneziaWG S1 混淆参数 S1#g' amneziawg-install.sh
+        sed -i 's#Server AmneziaWG S2#服务端 AmneziaWG S2 混淆参数 S2#g' amneziawg-install.sh
+        sed -i 's#Server AmneziaWG S3#服务端 AmneziaWG S3 混淆参数 S3#g' amneziawg-install.sh
+        sed -i 's#Server AmneziaWG S4#服务端 AmneziaWG S4 混淆参数 S4#g' amneziawg-install.sh
+        sed -i 's#AmneziaWG 2.0 Features:#AmneziaWG 2.0 特性参数：#g' amneziawg-install.sh
+        sed -i 's#H1-H4 Ranged Headers (ranges must not overlap):#H1-H4 范围包头 (各范围不能重叠)：#g' amneziawg-install.sh
+        sed -i 's#Server AmneziaWG H1#服务端 AmneziaWG 范围包头 H1#g' amneziawg-install.sh
+        sed -i 's#Server AmneziaWG H2#服务端 AmneziaWG 范围包头 H2#g' amneziawg-install.sh
+        sed -i 's#Server AmneziaWG H3#服务端 AmneziaWG 范围包头 H3#g' amneziawg-install.sh
+        sed -i 's#Server AmneziaWG H4#服务端 AmneziaWG 范围包头 H4#g' amneziawg-install.sh
+        sed -i 's#format: min-max or single value#格式: 最小值-最大值 或 单个数值#g' amneziawg-install.sh
+
+        # 3. 准备就绪及初始客户端创建提示汉化
+        sed -i 's#Okay, that was all I needed. We are ready to setup your AmneziaWG server now.#好的，所需配置已收集完毕，现在准备安装您的 AmneziaWG 服务端。#g' amneziawg-install.sh
+        sed -i 's#You will be able to generate a client at the end of the installation.#安装结束时您可以直接生成客户端。#g' amneziawg-install.sh
+        sed -i 's#Create an initial client configuration now?#是否立即创建一个初始客户端配置？#g' amneziawg-install.sh
+        sed -i "s#The client name must consist of alphanumeric character(s). It may also include underscores or dashes and can't exceed 15 chars.#客户端名称必须由字母数字组成，可包含下划线或短横线，长度不能超过 15 个字符。#g" amneziawg-install.sh
+        sed -i "s#Client AmneziaWG IPv4:#客户端 AmneziaWG IPv4 地址：#g" amneziawg-install.sh
+        sed -i 's#Here is your client config file as a QR Code:#您的客户端配置文件二维码如下：#g' amneziawg-install.sh
+        sed -i 's#Your client config file is in#您的客户端配置文件保存在：#g' amneziawg-install.sh
+        sed -i 's#If you want to add more clients, you simply need to run this script another time!#如果您想添加更多客户端，只需再次运行此脚本即可！#g' amneziawg-install.sh
+        sed -i 's#AmneziaWG is running.#AmneziaWG 正在运行。#g' amneziawg-install.sh
+        sed -i 's#You can check the status of AmneziaWG with:#您可以通过以下命令检查 AmneziaWG 状态：#g' amneziawg-install.sh
+        sed -i "s#If you don't have internet connectivity from your client, try to reboot the server.#如果客户端无法访问互联网，请尝试重启服务器。#g" amneziawg-install.sh
+
+        # 4. 主菜单及基础提示汉化
         sed -i 's#It looks like AmneziaWG is already installed.#检测到系统已安装 AmneziaWG。#g' amneziawg-install.sh
         sed -i 's#AmneziaWG server installer#AmneziaWG 服务端安装与管理工具#g' amneziawg-install.sh
         sed -i 's#What do you want to do?#请选择您想要进行的操作：#g' amneziawg-install.sh
@@ -108,17 +151,22 @@ do_install_amneziawg() {
         sed -i 's#7) Exit#7) 退出脚本#g' amneziawg-install.sh
         sed -i 's#Select an option#请选择一个选项#g' amneziawg-install.sh
         
-        # 子菜单项：吊销用户相关提示汉化
+        # 5. 子菜单项：吊销用户相关提示汉化
         sed -i 's#Select the existing client you want to revoke#请选择您想要吊销/删除的客户端#g' amneziawg-install.sh
         sed -i 's#Select one client#请选择一个客户端#g' amneziawg-install.sh
 
-        # 子菜单项：第 5 项协议修改菜单汉化
+        # 6. 子菜单项：第 5 项协议修改菜单汉化
         sed -i 's#Current AmneziaWG protocol mode:#当前 AmneziaWG 协议模式：#g' amneziawg-install.sh
         sed -i 's#1) Enable AWG 3.0 (header protection)#1) 启用 AWG 3.0 (头部保护)#g' amneziawg-install.sh
         sed -i 's#2) Enable AWG 3.1 (header protection + RandomTrailers; DisableCookies stays off)#2) 启用 AWG 3.1 (头部保护 + 随机尾部；关闭禁用Cookie)#g' amneziawg-install.sh
         sed -i 's#3) Cancel#3) 取消#g' amneziawg-install.sh
 
-        # 安装/添加用户等其他常见交互提示汉化
+        # 7. 子菜单项：第 6 项卸载提示汉化
+        sed -i 's#This will uninstall AmneziaWG and remove all the configuration files!#这将卸载 AmneziaWG 并删除所有配置文件！#g' amneziawg-install.sh
+        sed -i 's#Please backup the /etc/amnezia/amneziawg directory if you want to keep your configuration files.#如果您想保留配置文件，请备份 /etc/amnezia/amneziawg 目录。#g' amneziawg-install.sh
+        sed -i 's#Do you really want to remove AmneziaWG?#您确定要卸载 AmneziaWG 吗？#g' amneziawg-install.sh
+
+        # 8. 其他常见安装/配置提示汉化
         sed -i 's#Public IPv4 address#请输入或确认您的 公网 IPv4 地址#g' amneziawg-install.sh
         sed -i 's#Server AmneziaWG port#请输入 AmneziaWG 服务监听端口#g' amneziawg-install.sh
         sed -i 's#Client name#请输入客户端名称#g' amneziawg-install.sh
