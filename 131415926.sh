@@ -85,14 +85,44 @@ do_install_firewall() {
     bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/firewall/main/firewall.sh)
 }
 
-# ----------------- AmneziaWG 安装管理函数 -----------------
+# ----------------- AmneziaWG 安装管理函数（含自动汉化） -----------------
 do_install_amneziawg() {
-    echo "=== 正在下载并启动 AmneziaWG 一键搭建与管理脚本 ==="
-    if [ ! -f "amneziawg-install.sh" ]; then
-        curl -O https://raw.githubusercontent.com/wiresock/amneziawg-install/main/amneziawg-install.sh >/dev/null 2>&1
+    echo "=== 正在下载并准备 AmneziaWG 一键搭建与管理脚本 ==="
+    
+    # 下载官方原版脚本
+    curl -sO https://raw.githubusercontent.com/wiresock/amneziawg-install/main/amneziawg-install.sh
+    
+    if [ -f "amneziawg-install.sh" ]; then
+        # 自动对脚本内部的提示文字进行中文汉化替换
+        sed -i 's/It looks like AmneziaWG is already installed./检测到 AmneziaWG 已经安装。/g' amneziawg-install.sh
+        sed -i 's/AmneziaWG server installer/AmneziaWG 服务端安装程序/g' amneziawg-install.sh
+        sed -i 's/What do you want to do?/请选择您想要进行的操作：/g' amneziawg-install.sh
+        sed -i 's/Add a new user/添加新用户/g' amneziawg-install.sh
+        sed -i 's/List all users/查看所有用户列表/g' amneziawg-install.sh
+        sed -i 's/Revoke existing user/吊销/删除现有用户/g' amneziawg-install.sh
+        sed -i 's/Regenerate all client configs (using current server parameters)/重新生成所有客户端配置（使用当前服务端参数）/g' amneziawg-install.sh
+        sed -i 's/Change AWG protocol mode/修改 AWG 协议混淆模式/g' amneziawg-install.sh
+        sed -i 's/Uninstall AmneziaWG/卸载 AmneziaWG/g' amneziawg-install.sh
+        sed -i 's/Exit/退出/g' amneziawg-install.sh
+        sed -i 's/Select an option/请选择一个选项/g' amneziawg-install.sh
+        
+        # 常见安装过程中的英文提示汉化
+        sed -i 's/Public IPv4 address/请输入或确认您的 公网 IPv4 地址/g' amneziawg-install.sh
+        sed -i 's/Public IPv6 address/请输入或确认您的 公网 IPv6 地址/g' amneziawg-install.sh
+        sed -i 's/Default interface/默认网络接口/g' amneziawg-install.sh
+        sed -i 's/AmneziaWG interface name/AmneziaWG 虚拟网卡名称/g' amneziawg-install.sh
+        sed -i 's/Server AmneziaWG IPv4/服务器 AmneziaWG 内网 IPv4 地址/g' amneziawg-install.sh
+        sed -i 's/Server AmneziaWG IPv6/服务器 AmneziaWG 内网 IPv6 地址/g' amneziawg-install.sh
+        sed -i 's/Server AmneziaWG port/AmneziaWG 服务监听端口/g' amneziawg-install.sh
+        sed -i 's/Client name/客户端名称/g' amneziawg-install.sh
+        sed -i 's/Client AmneziaWG IPv4/客户端 AmneziaWG 内网 IPv4 地址/g' amneziawg-install.sh
+        sed -i 's/Client AmneziaWG IPv6/客户端 AmneziaWG 内网 IPv6 地址/g' amneziawg-install.sh
+
         chmod +x amneziawg-install.sh
+        sudo ./amneziawg-install.sh
+    else
+        printf "${RED}❌ 下载 AmneziaWG 脚本失败，请检查网络连接！\n${NC}"
     fi
-    sudo ./amneziawg-install.sh
 }
 
 # ----------------- 主菜单循环 -----------------
