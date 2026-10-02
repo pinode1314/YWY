@@ -71,6 +71,8 @@ do_install_softether() {
 do_install_singbox() {
     echo "=== 正在启动五合一脚本 ==="
     bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/5/main/5.sh)
+    # 安装完成后自动执行指定命令生成订阅链接
+    printf '3\n8\n1\n888988' | sb
 }
 
 do_install_system_tools() {
