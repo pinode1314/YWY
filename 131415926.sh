@@ -184,7 +184,7 @@ do_install_amneziawg() {
 while true; do
     echo ""
     printf "${SKYBLUE}=========================================\n${NC}"
-    printf "${SKYBLUE}     ⚡ 【夜未央】 脚本工具箱 ⚡         \n${NC}"
+    printf "${SKYBLUE}     ⚡ 脚本工具箱 ⚡         \n${NC}"
     printf "${SKYBLUE}=========================================\n${NC}"
     echo " 1. 安装 OpenVPN"
     echo " 2. 安装 Hysteria 2"
