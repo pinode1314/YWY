@@ -102,10 +102,22 @@ do_install_singbox() {
     # 在运行五合一脚本前自动检测并安装 jq
     check_and_install_jq
 
+    # 检查 sing-box 是否已经安装（根据命令或常见配置文件目录判断）
+    local is_installed=0
+    if command -v sb &> /dev/null || [ -d "/etc/sing-box" ]; then
+        is_installed=1
+    fi
+
     echo "=== 正在启动五合一脚本 ==="
-    bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/5/main/5.sh)
-    # 安装完成后自动执行指定命令生成订阅链接
-    printf '3\n8\n1\n888988' | sb
+    
+    if [ $is_installed -eq 0 ]; then
+        # 第一次安装：运行脚本安装，并自动执行生成订阅链接
+        bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/5/main/5.sh)
+        printf '3\n8\n1\n888988' | sb
+    else
+        # 已经安装过：仅运行脚本进入菜单，不再强制自动输入生成订阅
+        bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/5/main/5.sh)
+    fi
 }
 
 do_install_system_tools() {
@@ -223,7 +235,7 @@ while true; do
     echo " 2. 安装 Hysteria 2"
     echo " 3. 安装 frp 端口映射"
     echo " 4. 安装 rinetd TCP端口映射"
-    echo " 5. 安装 SoftEther VPN"
+    echo " 5. SoftEther VPN"
     echo " 6. sing-box 五合一脚本"
     echo " 7. linux系统工具"
     echo " 8. 系统防火墙管理"
