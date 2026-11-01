@@ -15,6 +15,36 @@ YELLOW='\033[1;33m'
 SKYBLUE='\033[1;36m'
 NC='\033[0m' # 恢复默认颜色
 
+# ----------------- 自动检测并安装 jq 依赖 -----------------
+check_and_install_jq() {
+    if ! command -v jq &> /dev/null; then
+        echo "=== 检测到系统未安装 jq，正在尝试自动安装... ==="
+        
+        # 尝试通过系统包管理器安装
+        if command -v apt &> /dev/null; then
+            apt update -y && apt install -y jq
+        elif command -v yum &> /dev/null; then
+            yum install -y jq
+        elif command -v dnf &> /dev/null; then
+            dnf install -y jq
+        fi
+        
+        # 如果包管理器安装失败或系统没有jq命令，使用二进制直接下载安装
+        if ! command -v jq &> /dev/null; then
+            echo "=== 系统源安装 jq 失败，正在通过官方二进制文件直接下载安装... ==="
+            wget -O /usr/bin/jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
+            chmod +x /usr/bin/jq
+        fi
+        
+        # 最终验证
+        if command -v jq &> /dev/null; then
+            printf "${GREEN}✅ jq 安装成功！${NC}\n"
+        else
+            printf "${RED}❌ jq 安装失败，可能会影响部分脚本的显示和解析。${NC}\n"
+        fi
+    fi
+}
+
 # 检查 OpenVPN 是否已安装
 check_openvpn_installed() {
     if [ -d "/etc/openvpn/server" ] || [ -f "/etc/systemd/system/openvpn-server@server.service" ]; then
@@ -69,6 +99,9 @@ do_install_softether() {
 }
 
 do_install_singbox() {
+    # 在运行五合一脚本前自动检测并安装 jq
+    check_and_install_jq
+
     echo "=== 正在启动五合一脚本 ==="
     bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/5/main/5.sh)
     # 安装完成后自动执行指定命令生成订阅链接
@@ -112,10 +145,10 @@ do_install_amneziawg() {
         sed -i 's#Server AmneziaWG Jc#服务端 AmneziaWG Jc 混淆包数量#g' amneziawg-install.sh
         sed -i 's#Server AmneziaWG Jmin#服务端 AmneziaWG Jmin 最小垃圾包大小#g' amneziawg-install.sh
         sed -i 's#Server AmneziaWG Jmax#服务端 AmneziaWG Jmax 最大垃圾包大小#g' amneziawg-install.sh
-        sed -i 's#Server AmneziaWG S1#服务端 AmneziaWG S1 混淆参数 S1#g' amneziawg-install.sh
-        sed -i 's#Server AmneziaWG S2#服务端 AmneziaWG S2 混淆参数 S2#g' amneziawg-install.sh
-        sed -i 's#Server AmneziaWG S3#服务端 AmneziaWG S3 混淆参数 S3#g' amneziawg-install.sh
-        sed -i 's#Server AmneziaWG S4#服务端 AmneziaWG S4 混淆参数 S4#g' amneziawg-install.sh
+        sed -i 's#Server AmneziaWG S1#服务端 AmneziaWG 混淆参数 S1#g' amneziawg-install.sh
+        sed -i 's#Server AmneziaWG S2#服务端 AmneziaWG 混淆参数 S2#g' amneziawg-install.sh
+        sed -i 's#Server AmneziaWG S3#服务端 AmneziaWG 混淆参数 S3#g' amneziawg-install.sh
+        sed -i 's#Server AmneziaWG S4#服务端 AmneziaWG 混淆参数 S4#g' amneziawg-install.sh
         sed -i 's#AmneziaWG 2.0 Features:#AmneziaWG 2.0 特性参数：#g' amneziawg-install.sh
         sed -i 's#H1-H4 Ranged Headers (ranges must not overlap):#H1-H4 范围包头 (各范围不能重叠)：#g' amneziawg-install.sh
         sed -i 's#Server AmneziaWG H1#服务端 AmneziaWG 范围包头 H1#g' amneziawg-install.sh
@@ -184,7 +217,7 @@ do_install_amneziawg() {
 while true; do
     echo ""
     printf "${SKYBLUE}=========================================\n${NC}"
-    printf "${SKYBLUE}     ⚡ 脚本工具箱 ⚡         \n${NC}"
+    printf "${SKYBLUE}     ⚡ 脚本工具箱 ⚡          \n${NC}"
     printf "${SKYBLUE}=========================================\n${NC}"
     echo " 1. 安装 OpenVPN"
     echo " 2. 安装 Hysteria 2"
