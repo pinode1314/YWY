@@ -45,36 +45,10 @@ check_and_install_jq() {
     fi
 }
 
-# 检查 OpenVPN 是否已安装
-check_openvpn_installed() {
-    if [ -d "/etc/openvpn/server" ] || [ -f "/etc/systemd/system/openvpn-server@server.service" ]; then
-        return 0
-    else
-        return 1
-    fi
-}
-
-# ----------------- OpenVPN 管理函数（安装与客户端管理一体化） -----------------
+# ----------------- OpenVPN 管理函数（已替换为指定链接） -----------------
 do_openvpn_manager() {
-    if [ ! -f "openvpn-install.sh" ]; then
-        wget -O openvpn-install.sh https://git.io/vpn >/dev/null 2>&1
-        chmod +x openvpn-install.sh
-    fi
-
-    if check_openvpn_installed; then
-        echo ""
-        echo "=================================================="
-        printf "${GREEN}✅ 检测到 OpenVPN 服务端已安装！${NC}\n"
-        printf "${GREEN}即将为您打开原版客户端与服务端管理菜单...${NC}\n"
-        echo "=================================================="
-        echo ""
-        read -p "请按回车键继续进入管理菜单..."
-    else
-        echo "=== 正在下载并运行原版 OpenVPN 安装程序 ==="
-    fi
-
-    # 直接调用原版管理/安装脚本（保留原生交互，去掉多设备修改）
-    bash openvpn-install.sh
+    echo "=== 正在启动 OpenVPN 一键脚本 ==="
+    bash <(wget -qO- https://raw.githubusercontent.com/pinode1314/openvpn/main/openvpn.sh)
 }
 
 # ----------------- 其他工具安装函数 -----------------
@@ -229,7 +203,7 @@ do_install_amneziawg() {
 while true; do
     echo ""
     printf "${SKYBLUE}=========================================\n${NC}"
-    printf "${SKYBLUE}     ⚡ 脚本工具箱 ⚡          \n${NC}"
+    printf "${SKYBLUE}     ⚡ 夜未央脚本工具箱 ⚡          \n${NC}"
     printf "${SKYBLUE}=========================================\n${NC}"
     echo " 1. 安装 OpenVPN"
     echo " 2. 安装 Hysteria 2"
